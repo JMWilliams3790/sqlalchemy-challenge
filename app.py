@@ -1,5 +1,5 @@
 import numpy as np
-
+import datetime
 import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
@@ -95,7 +95,7 @@ def temperature():
 
     """Return a dict of temps"""
     # Query all dates and measurements
-    results = session.query(Measurements.date, Measurements.station, Measurements.tobs).filter(Measurements.station == "USC00519281").\
+    results = session.query(Measurements.date, Measurements.tobs).filter(Measurements.station == "USC00519281").\
             filter(Measurements.date >= '2016-08-18', Measurements.date <= '2017-08-18').\
             order_by(Measurements.date)
 
@@ -103,9 +103,9 @@ def temperature():
 
     # Convert into list
     tempList = []
-    for date, station, temp in results:
+    for date, temp in results:
         tempDict = {}
-        tempDict[date] = station, temp
+        tempDict[date] = temp
         tempList.append(tempDict)
 
     return jsonify(tempList)
