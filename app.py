@@ -116,15 +116,17 @@ def startdate(start):
     """Fetch from the specified start date"""
 
     # This is some data cleaning for better matching
-    query_date = start.replace(" "," ")
+    query_date = func.strftime(start.replace(" "," "))
     for date in start:
         search_term = start.replace(" ", " ")
 
         if search_term == query_date:
-            results = session.query(Measurements.station, Stations.name, func.max(Measurements.tobs),\
+            search_term = query_date["start"].replace(" ", " ")
+
+
+            return jsonify(session.query(Measurements.station, Stations.name, func.max(Measurements.tobs),\
                       func.min(Measurements.tobs),func.avg(Measurements.tobs)).\
-                        filter(Measurements.date >= query_date).group_by(Measurements.station).all()
-            return jsonify(query_date)
+                        filter(Measurements.date >= query_date).group_by(Measurements.station).all())
 
     return jsonify({"error": f"Date {start} not found."}), 404
 
