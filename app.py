@@ -92,11 +92,19 @@ def stations():
 def temperature():
     # Create our session (link) from Python to the DB
     session = Session(engine)
+    StationActivity = session.query(Measurements.station, Stations.name, func.count(Measurements.station)).\
+    filter(Stations.station == Measurements.station).group_by(Measurements.station).\
+    order_by(func.count(Measurements.station).desc())
 
+    station, name, count = StationActivity.first()
+    print(f"{station} {name} {count}")
+
+    maxQuery, yearAgo = session.query(func.max(Measurements.date),func.date(func.max(Measurements.date), "-12 months")).filter(Measurements.station == station).first()
+    print(maxQuery, yearAgo)
     """Return a dict of temps"""
     # Query all dates and measurements
-    results = session.query(Measurements.date, Measurements.tobs).filter(Measurements.station == "USC00519281").\
-            filter(Measurements.date >= '2016-08-18', Measurements.date <= '2017-08-18').\
+    results = session.query(Measurements.date, Measurements.tobs).filter(Measurements.station == station).\
+            filter(Measurements.date >= yearAgo, Measurements.date <= maxQuery).\
             order_by(Measurements.date)
 
     session.close()
@@ -114,21 +122,25 @@ def temperature():
 @app.route("/api/v1.0/<start>")
 def startdate(start):
     """Fetch from the specified start date"""
-
+    session = Session(engine)
+    
     # This is some data cleaning for better matching
-    query_date = func.strftime(start.replace(" "," "))
-    for date in start:
-        search_term = start.replace(" ", " ")
 
-        if search_term == query_date:
-            search_term = query_date["start"].replace(" ", " ")
-
-
-            return jsonify(session.query(Measurements.station, Stations.name, func.max(Measurements.tobs),\
+    results = session.query(Measurements.date, func.max(Measurements.tobs),\
                       func.min(Measurements.tobs),func.avg(Measurements.tobs)).\
-                        filter(Measurements.date >= query_date).group_by(Measurements.station).all())
+                        filter(Measurements.date >= start).group_by(Measurements.date).order_by(Measurements.date).all()
+    
+    tempList = []
+    for date, tmax, tmin, tavg in results:
+        tempDict = {}
+        tempDict["date"] = date
+        tempDict["tmax"] = tmax
+        tempDict["tmin"] = tmin
+        tempDict["tavg"] = tavg
+        tempList.append(tempDict)
 
-    return jsonify({"error": f"Date {start} not found."}), 404
+
+    return jsonify(tempList)
 
 
 if __name__ == '__main__':
