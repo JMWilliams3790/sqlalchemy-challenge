@@ -1,5 +1,5 @@
 import numpy as np
-import datetime
+
 import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
@@ -118,7 +118,7 @@ def temperature():
 
     return jsonify(tempList)
 
-
+#Start date route
 @app.route("/api/v1.0/<start>")
 def startdate(start):
     """Fetch from the specified start date"""
@@ -129,6 +129,33 @@ def startdate(start):
     results = session.query(Measurements.date, func.max(Measurements.tobs),\
                       func.min(Measurements.tobs),func.avg(Measurements.tobs)).\
                         filter(Measurements.date >= start).group_by(Measurements.date).order_by(Measurements.date).all()
+    
+    tempList = []
+    for date, tmax, tmin, tavg in results:
+        tempDict = {}
+        tempDict["date"] = date
+        tempDict["tmax"] = tmax
+        tempDict["tmin"] = tmin
+        tempDict["tavg"] = tavg
+        tempList.append(tempDict)
+
+
+    return jsonify(tempList)
+
+
+
+#Start and End date route
+
+@app.route("/api/v1.0/<start>/<end>")
+def startEndDate(start, end):
+    """Fetch from the specified start date"""
+    session = Session(engine)
+    
+    # This is some data cleaning for better matching
+
+    results = session.query(Measurements.date, func.max(Measurements.tobs),\
+                      func.min(Measurements.tobs),func.avg(Measurements.tobs)).\
+                        filter(Measurements.date >= start, Measurements.date <= end).group_by(Measurements.date).order_by(Measurements.date).all()
     
     tempList = []
     for date, tmax, tmin, tavg in results:
